@@ -3,6 +3,15 @@
 All notable changes to this project are documented here. Versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [2.4.1] — 2026-10-09
+
+### Fixed
+- **Quality gate missed pip-installed tools.** Agents install linters with `pip install`, which
+  makes them runnable as `python3 -m ruff` but not always as `ruff` on PATH. The gate reported
+  NO_CHECKS_RAN, agents abandoned it for ad-hoc commands, and so never reached `verdict.py`.
+  This happened in all three v2.4 eval runs. The gate now falls back to `python3 -m <tool>`, and
+  the skill says to install tools and re-run the gate rather than bypass it.
+
 ## [2.4.0] — 2026-10-09
 
 In every v2.3 run, the final report was the weakest part: two of three said READY despite skipped

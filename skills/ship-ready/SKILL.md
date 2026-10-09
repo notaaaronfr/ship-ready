@@ -3,7 +3,7 @@ name: ship-ready
 description: Makes existing code production-grade without silently breaking it. Use whenever existing code is being cleaned up, simplified, made readable, refactored, reviewed, audited, hardened, sped up, given tests or QA, or made production-ready, enterprise grade or easy to hand over, including quick or time-pressured cleanups ("quick tidy, we ship in 10 minutes"), which is when silent behavior changes slip in, and AI-generated code ("fix this AI code", "is this ready to ship"). Scales from a 5-minute Quick mode (run tests, pin behavior, small change, re-run, flag risks) to a full evidence-gated pipeline with characterization tests, risk-ranked findings, measured Big-O optimization, property-based and mutation testing, OWASP 2025 / CWE Top 25 security review, dependency verification and a verifiable report. Not for writing new features from scratch.
 compatibility: Works in any agent that can read files and run shell commands. Scripts need bash and git; quality_gate.sh uses whichever linters, type checkers and test runners the project has installed.
 metadata:
-  version: "2.4.0"
+  version: "2.4.1"
 ---
 
 # Ship Ready
@@ -101,6 +101,9 @@ Escalate to Full mode if step 1 or 2 shows the code is untested and widely used,
    bash <skill>/scripts/quality_gate.sh <project> --json .quality/baseline.json
    bash <skill>/scripts/hotspots.sh <project> 20     # churn × size: where to look first
    ```
+   If the gate reports `NO_CHECKS_RAN` or skips a tool the project uses, install the tools
+   (Python: `pip install ruff mypy pytest pytest-cov bandit radon pip-audit`) and **re-run the
+   gate**. Never replace it with ad-hoc commands: the final verdict is computed from its JSON.
 4. For M/L work or anything that may span sessions, keep `.quality/progress.md`
    (phase, findings ledger, next step) so work can resume after interruption.
 

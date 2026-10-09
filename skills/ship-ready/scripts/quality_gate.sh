@@ -30,10 +30,19 @@ has() { command -v "$1" >/dev/null 2>&1; }
 record() { RESULTS="$RESULTS$1	$2	$3
 "; }
 
-# run_check <label> <command...>: runs the command if its program is installed.
+# True if a Python module is importable (tools installed with pip often are
+# runnable as `python3 -m tool` even when the `tool` command is not on PATH).
+has_module() { command -v python3 >/dev/null 2>&1 && python3 -c "import $1" 2>/dev/null; }
+
+# run_check <label> <command...>: runs the command if it is installed, falling
+# back to `python3 -m <module>` for pip-installed Python tools.
 run_check() {
-  local label="$1"; shift
-  if ! has "$1"; then record SKIPPED "$label" "$1 not installed"; return; fi
+  local label="$1" mod; shift
+  if ! has "$1"; then
+    mod="$(printf '%s' "$1" | tr '-' '_')"
+    if has_module "$mod"; then set -- python3 -m "$mod" "${@:2}"
+    else record SKIPPED "$label" "$1 not installed"; return; fi
+  fi
   echo "──▶ $label: $*"
   if "$@"; then record PASS "$label" ""; else record FAIL "$label" "exit $?"; FAILED=1; fi
 }
@@ -44,14 +53,16 @@ python_checks() {
   run_check lint        ruff check .
   run_check types       mypy --strict --ignore-missing-imports .
   # radon prints nothing for clean code; grade C+ (complexity > 10) fails the check.
-  if has radon; then
-    local complex; complex="$(radon cc -s -n C -e "$EXCLUDES" . 2>/dev/null)"
+  local radon_cmd=""
+  if has radon; then radon_cmd="radon"; elif has_module radon; then radon_cmd="python3 -m radon"; fi
+  if [ -n "$radon_cmd" ]; then
+    local complex; complex="$($radon_cmd cc -s -n C -e "$EXCLUDES" . 2>/dev/null)"
     if [ -z "$complex" ]; then record PASS complexity ""
     else echo "$complex"; record FAIL complexity "functions above complexity 10"; FAILED=1; fi
   else record SKIPPED complexity "radon not installed"; fi
   run_check security    bandit -q -r . -ll -x "./tests,./.venv,./venv,./node_modules"
   run_check deps-audit  pip-audit
-  if has pytest && python3 -c "import pytest_cov" 2>/dev/null; then
+  if { has pytest || has_module pytest; } && has_module pytest_cov; then
     run_check tests+coverage pytest -q --cov --cov-branch --cov-report=term-missing --cov-fail-under=80
   else
     run_check tests pytest -q
