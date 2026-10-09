@@ -3,7 +3,9 @@
 # (format, lint, types, complexity, duplication, tests + coverage, security,
 # secrets). Tools that are not installed are reported as SKIPPED, never PASS.
 #
-# Usage:   quality_gate.sh [project_dir] [--json output.json]
+# Usage:   quality_gate.sh [project_dir] [--json output.json] [--findings report.json]
+#          Ends by printing the ship-ready VERDICT (computed by verdict.py from these
+#          results and any open findings; .quality/report.json is used when present).
 # Exit:    0 all checks that ran passed · 1 a check failed · 3 nothing could run
 # Needs:   bash; each check uses its own tool only if it is on PATH.
 
@@ -11,15 +13,19 @@ set -uo pipefail
 
 PROJECT_DIR="."
 JSON_OUT=""
+FINDINGS=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --json) [ $# -ge 2 ] || { echo "--json needs a file path" >&2; exit 2; }; JSON_OUT="$2"; shift ;;
+    --findings) [ $# -ge 2 ] || { echo "--findings needs a file path" >&2; exit 2; }; FINDINGS="$2"; shift ;;
     -h|--help) sed -n '2,9p' "$0"; exit 0 ;;
     *) PROJECT_DIR="$1" ;;
   esac
   shift
 done
 case "$JSON_OUT" in ""|/*) ;; *) JSON_OUT="$PWD/$JSON_OUT" ;; esac
+case "$FINDINGS" in ""|/*) ;; *) FINDINGS="$PWD/$FINDINGS" ;; esac
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$PROJECT_DIR" || { echo "cannot cd into $PROJECT_DIR" >&2; exit 2; }
 
 RESULTS=""      # lines of: status<TAB>label<TAB>detail
@@ -61,7 +67,10 @@ python_checks() {
     else echo "$complex"; record FAIL complexity "functions above complexity 10"; FAILED=1; fi
   else record SKIPPED complexity "radon not installed"; fi
   run_check security    bandit -q -r . -ll -x "./tests,./.venv,./venv,./node_modules"
-  run_check deps-audit  pip-audit
+  # Audit the project's declared dependencies, not whatever happens to be installed.
+  if [ -f requirements.txt ]; then run_check deps-audit pip-audit -r requirements.txt
+  elif grep -qE '^dependencies *= *\[ *[^] ]' pyproject.toml 2>/dev/null; then run_check deps-audit pip-audit .
+  else record PASS deps-audit "nothing to audit: no declared dependencies"; fi
   if { has pytest || has_module pytest; } && has_module pytest_cov; then
     run_check tests+coverage pytest -q --cov --cov-branch --cov-report=term-missing --cov-fail-under=80
   else
@@ -133,8 +142,11 @@ printf '%s' "$RESULTS" | awk -F '\t' 'NF { printf "%-8s %-16s %s\n", $1, $2, $3 
 echo "======================================================"
 echo "RESULT: $verdict ($ran checks ran; stack:${detected:- none})"
 
-if [ -n "$JSON_OUT" ]; then
-  mkdir -p "$(dirname "$JSON_OUT")"
+# The verdict needs the JSON, so write it to a temporary file when --json wasn't given.
+GATE_JSON="$JSON_OUT"
+[ -n "$GATE_JSON" ] || GATE_JSON="$(mktemp)"
+if [ -n "$GATE_JSON" ]; then
+  mkdir -p "$(dirname "$GATE_JSON")"
   {
     printf '{\n  "schema": "ship-ready/gate@1",\n'
     printf '  "date": "%s",\n  "verdict": "%s",\n  "stack": "%s",\n  "checks": [\n' \
@@ -144,7 +156,16 @@ if [ -n "$JSON_OUT" ]; then
       NF { if (n++) printf ",\n"; printf "    {\"status\": \"%s\", \"check\": \"%s\", \"detail\": \"%s\"}", $1, esc($2), esc($3) }
       END { printf "\n" }'
     printf '  ]\n}\n'
-  } > "$JSON_OUT"
-  echo "JSON written to $JSON_OUT"
+  } > "$GATE_JSON"
+  [ -n "$JSON_OUT" ] && echo "JSON written to $JSON_OUT"
 fi
+
+# Ship-ready verdict, computed from evidence. Copy it into the report verbatim.
+[ -n "$FINDINGS" ] || { [ -f .quality/report.json ] && FINDINGS="$PWD/.quality/report.json"; }
+if command -v python3 >/dev/null 2>&1 && [ -f "$SCRIPT_DIR/verdict.py" ]; then
+  echo
+  if [ -n "$FINDINGS" ]; then python3 -I "$SCRIPT_DIR/verdict.py" "$GATE_JSON" "$FINDINGS" || true
+  else python3 -I "$SCRIPT_DIR/verdict.py" "$GATE_JSON" || true; fi
+fi
+[ -n "$JSON_OUT" ] || rm -f "$GATE_JSON"
 exit $code

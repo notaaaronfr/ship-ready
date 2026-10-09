@@ -3,7 +3,7 @@ name: ship-ready
 description: Makes existing code production-grade without silently breaking it. Use whenever existing code is being cleaned up, simplified, made readable, refactored, reviewed, audited, hardened, sped up, given tests or QA, or made production-ready, enterprise grade or easy to hand over, including quick or time-pressured cleanups ("quick tidy, we ship in 10 minutes"), which is when silent behavior changes slip in, and AI-generated code ("fix this AI code", "is this ready to ship"). Scales from a 5-minute Quick mode (run tests, pin behavior, small change, re-run, flag risks) to a full evidence-gated pipeline with characterization tests, risk-ranked findings, measured Big-O optimization, property-based and mutation testing, OWASP 2025 / CWE Top 25 security review, dependency verification and a verifiable report. Not for writing new features from scratch.
 compatibility: Works in any agent that can read files and run shell commands. Scripts need bash and git; quality_gate.sh uses whichever linters, type checkers and test runners the project has installed.
 metadata:
-  version: "2.4.1"
+  version: "2.5.0"
 ---
 
 # Ship Ready
@@ -32,7 +32,7 @@ measuring slower. The gate table exists because confidence is not evidence.
 | "Tests are strong" | Mutation score, or a manual mutation spot-check that the tests catch | Line coverage percentage |
 | "Secure" | Scanner output **and** a traced source → sink path for each P0/P1 | "No scanner warnings" |
 | "Dependency is safe" | Registry lookup: exists, age, maintainers, downloads; pinned in lockfile | A plausible-sounding package name |
-| "Done" | `quality_gate.sh` re-run; report with coverage attestation | The agent's own summary |
+| "Done" / "READY" | The `VERDICT:` printed by the final `quality_gate.sh` run, copied verbatim | The agent's own summary or judgment |
 
 Violating the letter of a gate is violating its spirit. If a gate cannot be met (no
 test runner, no network), say so in the report. Never paper over it.
@@ -298,13 +298,14 @@ the report states (tests, lint, types, coverage, security). Every number and cla
 report must point to a command whose output is in this session (or to
 `.quality/mutations.md`). Delete any claim that can't.
 
-**The verdict is computed, never written by hand:**
+**The verdict is computed, never written by hand.** Write `.quality/report.json` first, then
+run the gate one last time. It ends by printing `VERDICT:` from these results and your open findings:
 ```bash
 bash <skill>/scripts/quality_gate.sh <project> --json .quality/after.json
-python3 <skill>/scripts/verdict.py .quality/after.json .quality/report.json --write
 ```
-Copy the `VERDICT:` line and its reasons into the Markdown report verbatim. You may not
-upgrade it. If you disagree, fix the cause (install the tool, fix the finding) and run both again. Any metric without output from
+Copy that `VERDICT:` line and its reasons into the Markdown report verbatim. You may not
+upgrade it ("READY WITH CONDITIONS" when the gate printed NOT_READY is a falsified report).
+If you disagree, fix the cause (install the tool, fix the code or finding) and run the gate again. Any metric without output from
 after the last edit is written as "not measured". Apply the verdict rule mechanically: any
 skipped gate means at best READY WITH CONDITIONS.
 

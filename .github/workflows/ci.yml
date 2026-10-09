@@ -41,9 +41,10 @@ jobs:
           pip install ruff mypy pytest pytest-cov bandit radon
           cp -R evals/fixtures/order-service /tmp/fixture
           set +e
-          skills/ship-ready/scripts/quality_gate.sh /tmp/fixture --json /tmp/gate.json
-          code=$?
+          skills/ship-ready/scripts/quality_gate.sh /tmp/fixture --json /tmp/gate.json | tee /tmp/gate.out
+          code=${PIPESTATUS[0]}
           set -e
           test "$code" -eq 1                                  # must FAIL on the planted defects
           grep -q '"check": "security"' /tmp/gate.json
           python3 -c "import json; d=json.load(open('/tmp/gate.json')); assert d['verdict']=='FAIL'"
+          grep -q "^VERDICT: NOT_READY" /tmp/gate.out                 # gate prints the computed verdict

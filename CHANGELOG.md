@@ -3,6 +3,19 @@
 All notable changes to this project are documented here. Versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [2.5.0] — 2026-10-09
+
+In v2.4.1 eval runs, agents reliably ran the quality gate but skipped the separate
+`verdict.py` step, and hand-wrote "READY WITH CONDITIONS" while the gate said FAIL.
+
+### Changed
+- **The quality gate prints the verdict itself.** Every run now ends with `VERDICT:`, computed by
+  `verdict.py` from the gate results and `.quality/report.json` (auto-detected, or `--findings`).
+  The final gate run is the source of truth, with no extra step to skip.
+- **Dependency audit checks the project, not the machine.** `pip-audit -r requirements.txt` or
+  `pip-audit .` for declared dependencies; a pass when there are none. It used to audit
+  every package installed on the machine and fail on unrelated ones.
+
 ## [2.4.1] — 2026-10-09
 
 ### Fixed
