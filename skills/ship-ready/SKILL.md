@@ -3,7 +3,7 @@ name: ship-ready
 description: Makes existing code production-grade without silently breaking it. Use whenever existing code is being cleaned up, simplified, made readable, refactored, reviewed, audited, hardened, sped up, given tests or QA, or made production-ready, enterprise grade or easy to hand over, including quick or time-pressured cleanups ("quick tidy, we ship in 10 minutes"), which is when silent behavior changes slip in, and AI-generated code ("fix this AI code", "is this ready to ship"). Scales from a 5-minute Quick mode (run tests, pin behavior, small change, re-run, flag risks) to a full evidence-gated pipeline with characterization tests, risk-ranked findings, measured Big-O optimization, property-based and mutation testing, OWASP 2025 / CWE Top 25 security review, dependency verification and a verifiable report. Not for writing new features from scratch.
 compatibility: Works in any agent that can read files and run shell commands. Scripts need bash and git; quality_gate.sh uses whichever linters, type checkers and test runners the project has installed.
 metadata:
-  version: "2.2.0"
+  version: "2.3.0"
 ---
 
 # Ship Ready
@@ -185,6 +185,17 @@ Use `references/coding-standards.md`. Fix P0 → P1 → P2.
   (`git log -L`, `git blame`, comments, ADRs). Do not re-propose a refactor an ADR rejected.
 - **Bug fixes follow red → green:** write the test, watch it fail on the old code,
   fix, watch it pass.
+- **Freeze the original before rewriting any function's logic.** Copy the original
+  function verbatim into `tests/_original.py` (rename it `<name>_original`), then add a test
+  that compares the new and original versions on generated inputs (property-based where
+  available, otherwise ≥ 20 varied cases including empty, duplicates and boundaries):
+  ```python
+  @given(orders_strategy(), st.lists(st.text()))
+  def test_find_vip_customers_matches_original(orders, vips):
+      assert find_vip_customers(orders, vips) == find_vip_customers_original(orders, vips)
+  ```
+  Intended behavior changes are asserted as explicit exceptions in this test, so each one
+  is visible and reviewed. No rewritten function without this test.
 - **Convergence cap:** if a finding still fails after 3 fix attempts, stop, record it as
   `capped, NOT converged` with what was tried, and move on.
 
@@ -210,7 +221,7 @@ with every input variable (`O(n + m)`, not `O(n)`).
 2. State time, space and I/O round-trips before the change: `O(n·m) time, O(1) space, n+1 queries`.
 3. Fix algorithm and data structures first, then I/O (batching, N+1, streaming), then memory layout.
    Micro-optimizations last, and rarely.
-4. Prove equivalence with an **oracle test**: `optimized(x) == original(x)` over generated inputs.
+4. Prove equivalence with the **oracle test** against the frozen original in `tests/_original.py` (see Phase 3).
 5. Re-run the same harness. Apply the keep/revert rule:
 
    | Result | Decision |
@@ -228,6 +239,11 @@ with every input variable (`O(n + m)`, not `O(n)`).
 
 Use `references/qa-techniques.md`.
 
+- **Fix every weak test found in Phase 2.** Rewrite it with an independent expected value,
+  or delete it once a stronger test covers the same behavior. Tautological,
+  assertion-free and mock-call-only tests stay in no form, and "backwards compatibility" is not a reason to
+  keep a test that checks nothing. Run `grep -n "expected = .*(\|is not None\|assert_called" tests/`
+  and resolve every hit.
 - Fill test gaps on changed and P0/P1 code: boundaries, failure paths, the skeletons from Phase 2.
 - Pure logic gets **property-based tests**, climbing the strength ladder
   (no crash → invariant → idempotence → round-trip/oracle). Reject tautological
@@ -236,6 +252,9 @@ Use `references/qa-techniques.md`.
 - Run **mutation testing** on changed critical modules. Every surviving mutant is a missing
   assertion or a proven equivalent mutant; timeouts are inconclusive, not kills. With no
   tool available, do the manual spot-check: invert 3 conditions, confirm tests fail.
+  **Run each mutant as its own command** (apply the change, run the tests, revert) so
+  the failing output is visible. Record each in `.quality/mutations.md` as
+  `mutant | command | failing test`. The report may list only mutants in that file.
 - Re-run the gate: `quality_gate.sh <project> --json .quality/after.json`.
 
 **Exit gate:** gate thresholds met (`references/qa-techniques.md` §Quality gates)
@@ -266,7 +285,9 @@ delta, the findings ledger, the maturity scorecard, the **coverage attestation**
 source / build / runtime), and every `capped, NOT converged` item.
 
 **Final verification pass, before writing the report:** re-run every check whose result
-the report states (tests, lint, types, coverage, security). Any metric without output from
+the report states (tests, lint, types, coverage, security). Every number and claim in the
+report must point to a command whose output is in this session (or to
+`.quality/mutations.md`). Delete any claim that can't. Any metric without output from
 after the last edit is written as "not measured". Apply the verdict rule mechanically: any
 skipped gate means at best READY WITH CONDITIONS.
 

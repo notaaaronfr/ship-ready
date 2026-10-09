@@ -38,7 +38,7 @@ PROMPT="$(read_field prompt)"
 FIXTURE="$ROOT/evals/$(read_field fixture)"
 
 label="$([ $WITH_SKILL -eq 1 ] && echo with || echo without)"
-OUT="$ROOT/evals/results/$SCENARIO-$AGENT-$label-$(date +%Y%m%d-%H%M%S)"
+OUT="$ROOT/evals/results/$SCENARIO-$AGENT-$label-$(date +%Y%m%d-%H%M%S)-$$"
 WORK="$(mktemp -d)/repo"
 
 cp -R "$FIXTURE" "$WORK"

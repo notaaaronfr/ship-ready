@@ -3,6 +3,26 @@
 All notable changes to this project are documented here. Versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [2.3.0] — 2026-10-09
+
+Rules that described an outcome ("prove equivalence", "replace weak tests") were skipped
+in graded runs, so each is now a concrete step the agent can't do halfway.
+
+**Eval result:** full-harden mean rose from 0.77 (v2.1/v2.2, 2 runs) to 0.83 (3 runs: 0.92,
+0.79, 0.79); without the skill, 0.46. Weak tests were fixed in 3/3 runs and mutations were
+logged in 3/3. Oracle tests were present in every run that rewrote the function (2/3).
+
+### Changed
+- **Oracle tests:** before rewriting a function, copy the original verbatim into
+  `tests/_original.py` and compare old and new on generated inputs. Intended changes are
+  asserted as explicit exceptions.
+- **Weak tests:** every weak test found in assessment is rewritten or deleted, using a grep
+  sweep. "Backwards compatibility" is not a reason to keep one.
+- Eval runner: unique result folders per process, so parallel runs don't collide.
+- **Mutation claims:** each manual mutant runs as its own command and is logged in
+  `.quality/mutations.md`. The report may list only logged mutants, and every report claim
+  must point to command output.
+
 ## [2.2.0] — 2026-10-09
 
 ### Changed
