@@ -5,6 +5,10 @@ All notable changes to this project are documented here. Versions follow
 
 ## [2.5.1] — 2026-10-09
 
+**Eval result:** mean **0.90** across 3 blind-graded runs (0.83, 0.96, 0.92), up from 0.80 (v2.4.1)
+and 0.83 (v2.3). Money moved to Decimal in 3/3 runs, up from 0/3, and 2/3 runs reported the
+gate-computed verdict.
+
 From three blind-graded v2.4.1 runs (0.79, 0.79, 0.83; mean 0.80):
 
 ### Fixed

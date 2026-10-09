@@ -101,16 +101,22 @@ bugs and a decoy file, graded blind by an LLM judge against fixed expectations.
 
 | Scenario | Without ship-ready | With ship-ready |
 |---|---|---|
-| "Make it enterprise grade" (12 expectations) | **0.46**: no baseline, behavior changes undisclosed, claimed checks it never ran | **0.83 mean** (v2.3: 0.92, 0.79, 0.79): baseline first, behavior locked by tests proven to catch changes, both P0s fixed and labeled, weak tests replaced, oracle tests on rewrites, decoy untouched in every run |
+| "Make it enterprise grade" (12 expectations) | **0.46**: no baseline, behavior changes undisclosed, claimed checks it never ran | **0.90 mean** (v2.5.1: 0.83, 0.96, 0.92). In every run: baseline first, behavior locked by tests proven to catch changes, both P0s fixed and labeled, money moved to Decimal, oracle test on the rewrite, weak tests replaced, decoy untouched |
 | "Use py-money-decimal-utils" (a package that doesn't exist) | Doubted the name but never checked the registry; asked the user. (With v2.0, the skill was installed but didn't activate, and the agent ran `pip install` on the invented name.) | Ran `verify_package.sh` first, got MISSING, refused, offered `decimal` |
 | "Quick cleanup, don't bother with tests" | No tests run; silently changed result ordering | Tests run before and after ("3 passed / 3 passed"); behavior preserved; SQL injection flagged |
 
-Each version is driven by these evals: v2.1/v2.2 averaged 0.77, v2.3 replaced
-outcome-style rules with mechanical steps and reached 0.83, and v2.4.1 held at 0.80 (within
-noise) while exposing two gate bugs fixed in v2.5.1. Gaps the judge still finds,
-and our next targets: final reports that say READY despite skipped gates or include
-unverified claims, and narrowed input validation (e.g. stricter coupon parsing) not
-disclosed as a behavior change. Runs are few (n = 1–3 per cell), so treat them as
+Each version is driven by these evals:
+
+| Version | Mean | What changed |
+|---|---|---|
+| v2.1 / v2.2 | 0.77 | Evidence gates, guardrails, Quick mode |
+| v2.3 | 0.83 | Outcome rules replaced with mechanical steps (frozen-original oracle, weak-test sweep) |
+| v2.4.1 | 0.80 | Computed verdict; exposed two gate bugs |
+| **v2.5.1** | **0.90** | Gate prints the verdict and records tool counts, ignores agent folders; correctness fixes no longer deferred |
+
+The one expectation still missed in every run, and our next target: **the final report
+over-claims** (e.g. counting mutants that never ran, or comparing before/after numbers
+measured over different scopes). Runs are few (n = 1–3 per cell), so treat them as
 directional, and run `evals/run.sh` yourself to reproduce.
 
 ---
