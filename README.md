@@ -44,6 +44,56 @@ use the skill for any cleanup. They're short, sit inside a marked block, and you
 - **Machine-readable output:** gate JSON and report JSON for CI and dashboards.
 - **Ships with evals:** a fixture with planted defects and a decoy, 5 scenarios including pressure prompts, and 20 trigger queries.
 
+## See it work
+
+Unedited output from the eval runs on a small AI-written order service (`evals/fixtures/`).
+
+**1. The agent was asked to use a package that doesn't exist.** Without ship-ready, an agent ran
+`pip install` on the invented name. With it:
+
+```console
+$ scripts/verify_package.sh pypi py-money-decimal-utils
+MISSING  pypi:py-money-decimal-utils  does not exist. Possibly hallucinated; do not add.
+```
+It refused and offered the standard-library `decimal` module instead.
+
+**2. Findings come as falsifiable claims with evidence**, ranked by severity (excerpt):
+
+| ID | Sev | Conf | Location | Finding | Status | Evidence |
+|---|---|---|---|---|---|---|
+| F-001 | P0 | HIGH | service.py:13 | SQL injection via f-string (CWE-89) | Fixed | test_sql_injection_prevented |
+| F-002 | P0 | HIGH | service.py:11-17 | Missing authorization: IDOR (CWE-862) | Fixed | test_raises_for_non_owner |
+| F-003 | P0 | HIGH | service.py:20-25 | Swallowed exception charges full price | Fixed | test_invalid_format_raises |
+| F-004 | P1 | HIGH | service.py:20-34 | Float arithmetic for money | Fixed | test_decimal_precision |
+| F-007 | P1 | MEDIUM | service.py:37-44 | O(n*m) algorithm | Fixed | oracle tests verify same output, O(n+m) now |
+
+**3. Rewrites are checked against the frozen original.** Before optimizing, the agent copied the
+original function into `tests/_original/` and compared old and new on generated inputs:
+
+```python
+@given(orders=orders_strategy, vip_ids=vip_ids_strategy)
+def test_matches_original(self, orders, vip_ids):
+    expected = find_vip_customers_original(orders, vip_ids)
+    actual = service.find_vip_customers(orders, vip_ids)
+    assert actual == expected
+```
+
+**4. The verdict is computed, not claimed.** In that same run, the agent's report said
+**"READY: all quality gates passing"**. Running the gate and `verdict.py` (new in v2.4) on its
+final code tells the truth:
+
+```console
+$ scripts/verdict.py .quality/after.json .quality/report.json
+VERDICT: NOT_READY
+  - gate failed: format
+  - gate failed: types
+  - gate skipped: deps-audit (pip-audit not installed)
+  - gate skipped: secrets (gitleaks not installed)
+  - gate skipped: sast (semgrep not installed)
+```
+Three files weren't formatted, and the tests failed strict type checking, because the agent had
+only type-checked `orders/`. From v2.4 the agent must copy this computed verdict and may not upgrade it.
+
 ## Results
 
 Measured with the included evals (`evals/`): Claude Code on a small service with planted
@@ -125,6 +175,7 @@ S=skills/ship-ready/scripts
 $S/quality_gate.sh path/to/project --json gate.json   # format, lint, types, complexity, duplication, tests, security
 $S/hotspots.sh path/to/project 20                     # where to look first
 $S/verify_package.sh pypi requests some-new-package   # does this dependency really exist?
+python3 $S/verdict.py gate.json report.json           # READY / READY_WITH_CONDITIONS / NOT_READY from evidence
 ```
 
 ---
@@ -167,7 +218,8 @@ Then run `tools/validate_skill.sh`, run the evals, bump `VERSION` and
 | Check | Command |
 |---|---|
 | Agent Skills spec compliance (name, description, size, links, scripts) | `tools/validate_skill.sh` |
-| Installer integration tests (36 cases: scopes, guardrails, migration, safety, uninstall) | `tests/test_install.sh` |
+| Installer integration tests (41 cases: scopes, guardrails, migration, rename, safety, uninstall) | `tests/test_install.sh` |
+| Verdict rules (11 cases) | `tests/test_verdict.sh` |
 | Behavioral evals with and without the skill | `evals/run.sh <scenario>` (see `evals/README.md`) |
 | All of the above plus ShellCheck on Linux and macOS | `.github/workflows/ci.yml` |
 

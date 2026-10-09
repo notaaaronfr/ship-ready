@@ -28,6 +28,9 @@ jobs:
       - name: Installer integration tests
         run: tests/test_install.sh
 
+      - name: Verdict rules
+        run: tests/test_verdict.sh
+
       - name: ShellCheck
         if: runner.os == 'Linux'
         run: shellcheck -S warning install.sh tools/*.sh tests/*.sh evals/run.sh skills/*/scripts/*.sh

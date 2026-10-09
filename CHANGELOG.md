@@ -3,6 +3,20 @@
 All notable changes to this project are documented here. Versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [2.4.0] — 2026-10-09
+
+In every v2.3 run, the final report was the weakest part: two of three said READY despite skipped
+gates, and run 1 claimed "all quality gates passing" while its formatting and type checks failed.
+
+### Added
+- **`scripts/verdict.py`** computes READY / READY_WITH_CONDITIONS / NOT_READY from the gate JSON
+  and open findings. The agent must copy it verbatim and may not upgrade it.
+  `tests/test_verdict.sh` (11 cases) runs in CI.
+- **New validation is a behavior change:** inputs the original accepted are run through
+  `tests/_original.py` and the new code, and every newly rejected input must be disclosed.
+- Baseline must be recorded before any file is created or edited; unmeasured values say "not measured".
+- README "See it work" section with unedited output from the eval runs.
+
 ## [2.3.0] — 2026-10-09
 
 Rules that described an outcome ("prove equivalence", "replace weak tests") were skipped

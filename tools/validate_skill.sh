@@ -74,7 +74,7 @@ for s in "$DIR"/scripts/*; do
   [ -e "$s" ] || continue
   [ -x "$s" ] || err "$(basename "$s") is not executable"
   case "$s" in *.sh) bash -n "$s" || err "$(basename "$s") has a syntax error" ;; esac
-  sed -n '2,4p' "$s" | grep -q '^#' || warn "$(basename "$s") lacks a usage header comment"
+  sed -n '2,4p' "$s" | grep -qE '^(#|""")' || warn "$(basename "$s") lacks a usage header comment"
 done
 
 grep -nE '\\[A-Za-z]+\\' "$SKILL" >/dev/null && warn "SKILL.md may contain Windows-style paths"

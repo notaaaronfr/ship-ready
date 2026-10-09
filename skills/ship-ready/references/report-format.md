@@ -104,5 +104,5 @@ Every metric must come from a command run after the last edit; otherwise use `nu
 JSON and "not measured" in Markdown. Mutation results from hand-made mutants go in
 `"mutation_spot_check": "3/3"`, never in `mutation_score`.
 
-**Verdict rule:** any open P0 → NOT_READY. Any open P1, or a gate skipped for a missing
+**Verdict rule** (computed by `scripts/verdict.py`; never hand-written): any open P0 → NOT_READY. Any open P1, or a gate skipped for a missing
 tool → READY_WITH_CONDITIONS (list them). Otherwise READY.

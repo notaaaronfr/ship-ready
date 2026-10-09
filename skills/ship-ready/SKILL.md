@@ -3,7 +3,7 @@ name: ship-ready
 description: Makes existing code production-grade without silently breaking it. Use whenever existing code is being cleaned up, simplified, made readable, refactored, reviewed, audited, hardened, sped up, given tests or QA, or made production-ready, enterprise grade or easy to hand over, including quick or time-pressured cleanups ("quick tidy, we ship in 10 minutes"), which is when silent behavior changes slip in, and AI-generated code ("fix this AI code", "is this ready to ship"). Scales from a 5-minute Quick mode (run tests, pin behavior, small change, re-run, flag risks) to a full evidence-gated pipeline with characterization tests, risk-ranked findings, measured Big-O optimization, property-based and mutation testing, OWASP 2025 / CWE Top 25 security review, dependency verification and a verifiable report. Not for writing new features from scratch.
 compatibility: Works in any agent that can read files and run shell commands. Scripts need bash and git; quality_gate.sh uses whichever linters, type checkers and test runners the project has installed.
 metadata:
-  version: "2.3.0"
+  version: "2.4.0"
 ---
 
 # Ship Ready
@@ -104,7 +104,9 @@ Escalate to Full mode if step 1 or 2 shows the code is untested and widely used,
 4. For M/L work or anything that may span sessions, keep `.quality/progress.md`
    (phase, findings ledger, next step) so work can resume after interruption.
 
-**Exit gate:** baseline numbers recorded; depth chosen; hotspot list in hand.
+**Exit gate:** baseline numbers recorded *before you create or edit any file*, tests
+included; depth chosen; hotspot list in hand. Anything you couldn't measure is
+"not measured", never an estimate.
 
 ## Phase 1: Lock current behavior
 
@@ -204,6 +206,10 @@ and note any whose result or exception changed: empty / None, wrong type, extra
 delimiters or fields, boundary values, unhashable or iterator inputs, string vs int
 IDs. Each change is either reverted or listed under "Behavior changes" in the report.
 Changed signatures and return types (float → Decimal, function → context manager) are behavior changes.
+**New validation is a behavior change too.** For every new regex, type check or range check, run
+at least 5 inputs the *original* accepted (lowercase, extra segments, 0 and 100%, other
+numeric types) through `tests/_original.py` and the new code. Every input that's now rejected
+goes in the report's "Behavior changes" list, or the validation is loosened.
 
 **Exit gate:** characterization + unit suites green after the last edit; diff contains
 only in-scope changes; behavior-change audit written.
@@ -287,7 +293,15 @@ source / build / runtime), and every `capped, NOT converged` item.
 **Final verification pass, before writing the report:** re-run every check whose result
 the report states (tests, lint, types, coverage, security). Every number and claim in the
 report must point to a command whose output is in this session (or to
-`.quality/mutations.md`). Delete any claim that can't. Any metric without output from
+`.quality/mutations.md`). Delete any claim that can't.
+
+**The verdict is computed, never written by hand:**
+```bash
+bash <skill>/scripts/quality_gate.sh <project> --json .quality/after.json
+python3 <skill>/scripts/verdict.py .quality/after.json .quality/report.json --write
+```
+Copy the `VERDICT:` line and its reasons into the Markdown report verbatim. You may not
+upgrade it. If you disagree, fix the cause (install the tool, fix the finding) and run both again. Any metric without output from
 after the last edit is written as "not measured". Apply the verdict rule mechanically: any
 skipped gate means at best READY WITH CONDITIONS.
 
@@ -324,3 +338,4 @@ Report outcomes faithfully. A red test that scrolled past unmentioned is a falsi
 | `scripts/quality_gate.sh <dir> [--json file]` | Detects stack; runs format, lint, types, complexity, duplication, tests+coverage, security, secrets |
 | `scripts/hotspots.sh <dir> [n]` | Ranks files by git churn × size to prioritize |
 | `scripts/verify_package.sh <ecosystem> <name>` | Checks a dependency exists, its age and its popularity before adding it |
+| `scripts/verdict.py <gate.json> <report.json> --write` | Computes READY / READY_WITH_CONDITIONS / NOT_READY from evidence |
