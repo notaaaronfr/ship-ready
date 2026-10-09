@@ -236,6 +236,22 @@ The installer never overwrites or deletes a skill folder it didn't create. It ed
 
 ---
 
+## What it runs, reads and sends
+
+ship-ready is plain Markdown plus readable shell and Python scripts. It has no MCP servers, no
+telemetry, and no credentials, and it sends none of your code anywhere.
+
+| Component | What it does | Network |
+|---|---|---|
+| `SKILL.md`, `references/`, `templates/` | Instructions the agent reads | None |
+| `hooks/session-start.sh` (Claude Code plugin only) | At session start, prints the five guardrails from `skills/ship-ready/guardrails.md` into context. Reads `CLAUDE.md` / `~/.claude/CLAUDE.md` only to skip itself if the guardrails are already installed | None |
+| `scripts/quality_gate.sh` | Runs the linters, type checkers, test runners and scanners already installed in your project (ruff, mypy, pytest, bandit, eslint, go vet, cargo, gitleaks…), and writes results to `.quality/` | Only the optional `semgrep --config auto` step (downloads Semgrep's public rules) and the dependency audit (`pip-audit`, `npm audit`, `govulncheck`, `cargo audit` query their vulnerability databases), and only when those tools are installed |
+| `scripts/verify_package.sh` | Checks that a package name exists before it's installed | Sends **only the package name** to the public registry: `pypi.org`, `registry.npmjs.org`, `crates.io`, or `proxy.golang.org` |
+| `scripts/hotspots.sh`, `scripts/verdict.py` | Read `git log` and the gate's JSON | None |
+| `install.sh` | Copies or symlinks the skill into agent folders and adds a marked block to instruction files (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `copilot-instructions.md`) | None |
+
+---
+
 ## Customize for your organization
 
 Edit the source in `skills/ship-ready/` (one place; installs follow):
