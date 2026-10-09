@@ -1,0 +1,6 @@
+dist/
+.DS_Store
+.ruff_cache/
+__pycache__/
+.quality/
+evals/results/

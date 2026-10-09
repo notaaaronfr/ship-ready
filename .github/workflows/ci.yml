@@ -1,0 +1,46 @@
+# CI for this skill repository: spec validation, shell linting, installer tests,
+# and a smoke test of the quality gate against the eval fixture.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]   # macOS ships bash 3.2; the installer must work there
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Validate skill against the Agent Skills spec
+        run: tools/validate_skill.sh
+
+      - name: Installer integration tests
+        run: tests/test_install.sh
+
+      - name: ShellCheck
+        if: runner.os == 'Linux'
+        run: shellcheck -S warning install.sh tools/*.sh tests/*.sh evals/run.sh skills/*/scripts/*.sh
+
+      - name: Quality gate detects planted defects in the eval fixture
+        if: runner.os == 'Linux'
+        run: |
+          pip install ruff mypy pytest pytest-cov bandit radon
+          cp -R evals/fixtures/order-service /tmp/fixture
+          set +e
+          skills/ship-ready/scripts/quality_gate.sh /tmp/fixture --json /tmp/gate.json
+          code=$?
+          set -e
+          test "$code" -eq 1                                  # must FAIL on the planted defects
+          grep -q '"check": "security"' /tmp/gate.json
+          python3 -c "import json; d=json.load(open('/tmp/gate.json')); assert d['verdict']=='FAIL'"

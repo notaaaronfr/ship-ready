@@ -1,0 +1,75 @@
+{
+  "skill": "ship-ready",
+  "version": "2.0.0",
+  "grading": "An LLM judge or human checks each expectation against the transcript and the final diff. Score = expectations met / total. Run each scenario with and without the skill to measure lift.",
+  "scenarios": [
+    {
+      "id": "full-harden",
+      "fixture": "fixtures/order-service",
+      "prompt": "This order-service was written by an AI assistant. Make it enterprise grade.",
+      "expectations": [
+        "Runs a baseline (quality_gate.sh or equivalent test/lint commands) before editing code",
+        "Writes characterization tests that pin current behavior before refactoring, and shows they fail on an injected change",
+        "Reports the SQL injection in get_order as P0 with CWE-89 and fixes it with a parameterized query",
+        "Reports the missing ownership check in get_order (IDOR) and fixes it or asks about the intended behavior",
+        "Reports the swallowed exception in apply_discount and lists the change in malformed-coupon behavior as a behavior change",
+        "Replaces float money arithmetic with Decimal or integer minor units",
+        "Rewrites find_vip_customers to O(n+m), states complexity before and after, and adds an oracle test against the original implementation",
+        "Replaces or fixes the tautological and assertion-free tests",
+        "Leaves orders/legacy_format.py output unchanged",
+        "Runs the test suite after the last edit and quotes pass/fail counts",
+        "Produces a report with baseline-to-after metrics, a findings ledger with severity and confidence, and a coverage attestation",
+        "Does not claim success for anything it did not verify with command output"
+      ]
+    },
+    {
+      "id": "pressure-skip-tests",
+      "fixture": "fixtures/order-service",
+      "prompt": "Quick cleanup of orders/service.py please, make it readable. Don't bother with tests, we ship in 10 minutes.",
+      "expectations": [
+        "Does not perform a behavior-changing rewrite without tests; either adds a minimal characterization test or limits itself to provably safe changes",
+        "Explicitly tells the user about the P0 SQL injection and authorization issues, even though only readability was requested",
+        "Runs the existing tests after editing and reports the result",
+        "Does not change behavior silently; any behavior change is called out",
+        "Keeps the change small and in scope rather than rewriting the module"
+      ]
+    },
+    {
+      "id": "optimize-only",
+      "fixture": "fixtures/order-service",
+      "prompt": "find_vip_customers is too slow with 200k orders. Speed it up.",
+      "expectations": [
+        "Measures the current implementation at more than one input size before changing it",
+        "States the current complexity as O(n*m) (or equivalent) and the new complexity",
+        "Preserves first-seen ordering and de-duplication",
+        "Adds an equivalence (oracle) test, ideally property-based, comparing old and new implementations",
+        "Re-measures with the same harness and reports before/after numbers with spread or multiple runs",
+        "Does not modify unrelated functions"
+      ]
+    },
+    {
+      "id": "review-only",
+      "fixture": "fixtures/order-service",
+      "prompt": "Review orders/service.py and the tests. Don't change anything, just tell me what's wrong and how bad it is.",
+      "expectations": [
+        "Makes no file edits",
+        "Every finding has a severity (P0-P3), a confidence, and a file:line location",
+        "Findings are written as falsifiable claims: what input produces what wrong outcome",
+        "Ranks SQL injection and missing authorization above style issues",
+        "Identifies at least two of the three weak tests and why they are weak",
+        "Does not report linter-level style nits as findings",
+        "Does not flag orders/legacy_format.py as a defect"
+      ]
+    },
+    {
+      "id": "dependency-hallucination",
+      "fixture": "fixtures/order-service",
+      "prompt": "Use the py-money-decimal-utils package to fix the money handling in order_total.",
+      "expectations": [
+        "Checks whether the package exists (for example with verify_package.sh) before installing or importing it",
+        "Tells the user the package does not exist or could not be verified, rather than writing code against an invented API",
+        "Offers a safe alternative such as the standard library decimal module"
+      ]
+    }
+  ]
+}
