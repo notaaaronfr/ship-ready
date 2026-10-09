@@ -1,10 +1,26 @@
 # ship-ready
 
+[![CI](https://github.com/notaaaronfr/ship-ready/actions/workflows/ci.yml/badge.svg)](https://github.com/notaaaronfr/ship-ready/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/notaaaronfr/ship-ready)](https://github.com/notaaaronfr/ship-ready/releases)
+[![Evals](https://img.shields.io/badge/blind--graded_evals-0.90_vs_0.46-2ea44f)](#results)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 Turns AI-generated, legacy or prototype code into code a stranger can **read, trust,
 change and operate**, and makes the agent prove it with evidence, not adjectives.
 
 Works with **Claude Code, OpenAI Codex, GitHub Copilot (CLI and VS Code), Gemini CLI /
-Antigravity**, any agent that reads `AGENTS.md`, and as a single file you can paste anywhere.
+Antigravity, Cursor**, any agent that reads `AGENTS.md`, and as a single file you can paste anywhere.
+
+```bash
+npx skills add notaaaronfr/ship-ready
+```
+
+Then ask your agent: *"make this enterprise grade"*, or type `/ship-ready src/`.
+
+<p align="center">
+  <img src="docs/demo.gif" alt="ship-ready flags a hallucinated package, catches a SQL injection, and returns a computed NOT_READY verdict" width="100%" />
+  <br/><sub>Real output on the eval fixture: a hallucinated package flagged, a SQL injection caught, and a verdict computed from evidence. Recorded with <a href="docs/demo.tape">docs/demo.tape</a>.</sub>
+</p>
 
 ---
 
@@ -123,7 +139,23 @@ directional, and run `evals/run.sh` yourself to reproduce.
 
 ## Install
 
-Requirements: macOS or Linux with `bash` and `git` (Windows: WSL or Git Bash).
+Pick one. All three install the same skill.
+
+**1. One command, any agent** (Claude Code, Codex, Copilot, Cursor, Gemini and more, via [skills.sh](https://skills.sh)):
+
+```bash
+npx skills add notaaaronfr/ship-ready
+```
+
+**2. Claude Code plugin.** Includes the always-on guardrails, loaded at session start:
+
+```text
+/plugin marketplace add notaaaronfr/ship-ready
+/plugin install ship-ready@ship-ready
+```
+
+**3. Full installer.** Every agent, the always-on guardrails in each agent's instruction file,
+team (project) installs, `--status` and `--uninstall`. Needs macOS or Linux with `bash` and `git` (Windows: WSL or Git Bash):
 
 ```bash
 git clone https://github.com/notaaaronfr/ship-ready.git && cd ship-ready
@@ -131,6 +163,10 @@ git clone https://github.com/notaaaronfr/ship-ready.git && cd ship-ready
 ```
 
 Or pick agents: `./install.sh --target claude,codex`
+
+> Options 1 and 2 install the skill; option 3 also adds the five always-on guardrails to
+> each agent's instruction file (option 2 loads them for Claude Code through a hook). The
+> guardrails matter: in our evals, agents often didn't load the skill for "quick" requests.
 
 | Agent | Installed to (user / project) | Updates |
 |---|---|---|

@@ -3,6 +3,17 @@
 All notable changes to this project are documented here. Versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [2.6.0] — 2026-10-09
+
+### Added
+- **One-line install for any agent:** `npx skills add notaaaronfr/ship-ready`, via the skills CLI and skills.sh.
+- **Claude Code plugin marketplace.** Install from inside Claude Code with
+  `/plugin marketplace add notaaaronfr/ship-ready` then `/plugin install ship-ready@ship-ready`.
+  It includes a SessionStart hook that loads the always-on guardrails, skipped when `install.sh`
+  already added them to CLAUDE.md. Both manifests pass `claude plugin validate`.
+- **Demo GIF** at the top of the README, recorded from `docs/demo.tape` with real script output.
+- README badges for CI, release, eval score and license; the validator checks plugin manifest versions.
+
 ## [2.5.1] — 2026-10-09
 
 **Eval result:** mean **0.90** across 3 blind-graded runs (0.83, 0.96, 0.92), up from 0.80 (v2.4.1)

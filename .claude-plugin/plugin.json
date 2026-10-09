@@ -1,0 +1,13 @@
+{
+  "name": "ship-ready",
+  "version": "2.6.0",
+  "description": "Makes AI-written code production-ready, with proof: locks behavior with tests, fixes bugs and security holes (OWASP 2025 / CWE Top 25), optimizes Big-O with oracle tests, adds property and mutation testing, and computes a READY / NOT READY verdict from evidence.",
+  "author": {
+    "name": "Charles Aaron David",
+    "url": "https://github.com/notaaaronfr"
+  },
+  "homepage": "https://github.com/notaaaronfr/ship-ready",
+  "repository": "https://github.com/notaaaronfr/ship-ready",
+  "license": "MIT",
+  "keywords": ["code-quality", "testing", "security", "refactoring", "code-review", "mutation-testing", "property-based-testing", "owasp", "ai-code"]
+}

@@ -33,7 +33,7 @@ jobs:
 
       - name: ShellCheck
         if: runner.os == 'Linux'
-        run: shellcheck -S warning install.sh tools/*.sh tests/*.sh evals/run.sh skills/*/scripts/*.sh
+        run: shellcheck -S warning install.sh tools/*.sh tests/*.sh evals/run.sh skills/*/scripts/*.sh hooks/*.sh
 
       - name: Quality gate detects planted defects in the eval fixture
         if: runner.os == 'Linux'

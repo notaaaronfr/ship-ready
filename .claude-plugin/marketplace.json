@@ -1,0 +1,21 @@
+{
+  "name": "ship-ready",
+  "owner": {
+    "name": "Charles Aaron David",
+    "url": "https://github.com/notaaaronfr"
+  },
+  "metadata": {
+    "description": "ship-ready: make AI-written code production-ready, with proof.",
+    "version": "2.6.0"
+  },
+  "plugins": [
+    {
+      "name": "ship-ready",
+      "source": "./",
+      "description": "Makes AI-written code production-ready, with proof. Evidence-gated hardening: baseline, behavior lock-in, risk-ranked findings, measured optimization, property and mutation testing, computed verdict.",
+      "version": "2.6.0",
+      "category": "development",
+      "homepage": "https://github.com/notaaaronfr/ship-ready"
+    }
+  ]
+}

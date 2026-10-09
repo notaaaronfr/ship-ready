@@ -55,6 +55,14 @@ if [ -f "$ROOT/VERSION" ]; then
     || err "metadata.version '$meta_version' differs from VERSION '$(cat "$ROOT/VERSION")'"
 fi
 
+# Claude Code plugin manifests must carry the same version.
+for manifest in "$ROOT/.claude-plugin/plugin.json" "$ROOT/.claude-plugin/marketplace.json"; do
+  [ -f "$manifest" ] || continue
+  mv="$(python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print(d.get('version') or d.get('plugins',[{}])[0].get('version',''))" "$manifest" 2>/dev/null)"
+  if [ "$mv" = "$(cat "$ROOT/VERSION")" ]; then ok "$(basename "$manifest") version $mv"
+  else err "$(basename "$manifest") version '$mv' differs from VERSION"; fi
+done
+
 # Every relative path mentioned in SKILL.md must exist; references are one level deep.
 for ref in $(grep -oE '(references|scripts|templates)/[A-Za-z0-9_.-]+' "$SKILL" | sort -u); do
   [ -e "$DIR/$ref" ] || err "SKILL.md references missing file $ref"
