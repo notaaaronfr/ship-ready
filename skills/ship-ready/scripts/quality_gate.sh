@@ -31,6 +31,8 @@ cd "$PROJECT_DIR" || { echo "cannot cd into $PROJECT_DIR" >&2; exit 2; }
 RESULTS=""      # lines of: status<TAB>label<TAB>detail
 FAILED=0
 EXCLUDES="node_modules,.venv,venv,dist,build,target,.git"
+# Agent tool folders (where this skill itself is installed) are not project code.
+AGENT_DIRS=".claude,.agents,.codex,.gemini"
 
 has() { command -v "$1" >/dev/null 2>&1; }
 record() { RESULTS="$RESULTS$1	$2	$3
@@ -50,23 +52,37 @@ run_check() {
     else record SKIPPED "$label" "$1 not installed"; return; fi
   fi
   echo "──▶ $label: $*"
-  if "$@"; then record PASS "$label" ""; else record FAIL "$label" "exit $?"; FAILED=1; fi
+  # Keep the tool's own summary line (e.g. "Found 3 errors.") as evidence in the results.
+  local out rc summary
+  out="$(mktemp)"
+  "$@" > "$out" 2>&1; rc=$?
+  cat "$out"
+  # Pick the line that states the result: a failure reason first (coverage miss, error
+  # counts, first issue), else a success summary, else the last line of output.
+  summary="$(sed -e 's/\x1b\[[0-9;]*m//g' "$out" | awk '
+    /Required test coverage|[0-9]+ failed|Found [0-9]+ error|[0-9]+ errors?|would be reformatted|>> Issue:/ { if (bad == "") bad = $0 }
+    /[0-9]+ passed|already formatted|All checks passed|No issues identified|Success:/ { good = $0 }
+    NF { last = $0 }
+    END { print (bad != "" ? bad : (good != "" ? good : last)) }' | tr '\t' ' ' | cut -c1-120)"
+  rm -f "$out"
+  if [ "$rc" -eq 0 ]; then record PASS "$label" "$summary"
+  else record FAIL "$label" "exit $rc: $summary"; FAILED=1; fi
 }
 
 python_checks() {
   echo "== Python =="
-  run_check format      ruff format --check .
-  run_check lint        ruff check .
-  run_check types       mypy --strict --ignore-missing-imports .
+  run_check format      ruff format --check --extend-exclude "$AGENT_DIRS" .
+  run_check lint        ruff check --extend-exclude "$AGENT_DIRS" .
+  run_check types       mypy --strict --ignore-missing-imports --exclude '^\.(claude|agents|codex|gemini)/' .
   # radon prints nothing for clean code; grade C+ (complexity > 10) fails the check.
   local radon_cmd=""
   if has radon; then radon_cmd="radon"; elif has_module radon; then radon_cmd="python3 -m radon"; fi
   if [ -n "$radon_cmd" ]; then
-    local complex; complex="$($radon_cmd cc -s -n C -e "$EXCLUDES" . 2>/dev/null)"
+    local complex; complex="$($radon_cmd cc -s -n C -e "$EXCLUDES,.claude/*,.agents/*,.codex/*,.gemini/*" . 2>/dev/null)"
     if [ -z "$complex" ]; then record PASS complexity ""
     else echo "$complex"; record FAIL complexity "functions above complexity 10"; FAILED=1; fi
   else record SKIPPED complexity "radon not installed"; fi
-  run_check security    bandit -q -r . -ll -x "./tests,./.venv,./venv,./node_modules"
+  run_check security    bandit -q -r . -ll -x "./tests,./.venv,./venv,./node_modules,./.claude,./.agents,./.codex,./.gemini"
   # Audit the project's declared dependencies, not whatever happens to be installed.
   if [ -f requirements.txt ]; then run_check deps-audit pip-audit -r requirements.txt
   elif grep -qE '^dependencies *= *\[ *[^] ]' pyproject.toml 2>/dev/null; then run_check deps-audit pip-audit .
@@ -127,7 +143,7 @@ if [ -f pom.xml ] || [ -f build.gradle ] || [ -f build.gradle.kts ]; then jvm_ch
 [ -n "$detected" ] || echo "No project manifest found (pyproject.toml, package.json, go.mod, Cargo.toml, pom.xml, build.gradle)."
 
 echo "== Stack-independent =="
-run_check duplication "$(node_bin jscpd)" --silent --threshold 3 --ignore "**/{$EXCLUDES}/**" .
+run_check duplication "$(node_bin jscpd)" --silent --threshold 3 --ignore "**/{$EXCLUDES,$AGENT_DIRS}/**" .
 run_check secrets     gitleaks detect --no-banner --source .
 run_check sast        semgrep scan --config auto --error --quiet
 

@@ -3,6 +3,23 @@
 All notable changes to this project are documented here. Versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [2.5.1] — 2026-10-09
+
+From three blind-graded v2.4.1 runs (0.79, 0.79, 0.83; mean 0.80):
+
+### Fixed
+- **The gate checked the skill's own files.** The skill's own scripts in `.claude/skills/` failed the
+  format check, and agents rightly called the failure unrelated. Agent folders
+  (`.claude`, `.agents`, `.codex`, `.gemini`) are now excluded from all checks.
+- **Gate output had no counts**, so agents invented baseline numbers. Each result now records the
+  tool's own summary line, such as `Found 15 errors in 2 files` or `Required test coverage of 80% not reached`.
+
+### Changed
+- P0/P1 correctness fixes are made even when they change behavior, and the change is disclosed.
+  In 3 of 3 runs, float money was deferred as "a behavior change".
+- Oracle-test generators may not filter out inputs where old and new differ. Adversarial inputs are required.
+- Rationalizations added: hand-editing gate JSON (seen in 1 run), and deferring correctness fixes.
+
 ## [2.5.0] — 2026-10-09
 
 In v2.4.1 eval runs, agents reliably ran the quality gate but skipped the separate
