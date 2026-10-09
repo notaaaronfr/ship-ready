@@ -51,13 +51,14 @@ bugs and a decoy file, graded blind by an LLM judge against fixed expectations.
 
 | Scenario | Without ship-ready | With ship-ready |
 |---|---|---|
-| "Make it enterprise grade" (12 expectations) | **0.46**: no baseline, behavior changes undisclosed, claimed checks it never ran | **0.79**: baseline, behavior locked by tests proven to catch changes, P0s fixed and labeled, findings ledger, decoy untouched |
+| "Make it enterprise grade" (12 expectations) | **0.46**: no baseline, behavior changes undisclosed, claimed checks it never ran | **0.79 and 0.75** (two runs, v2.1 and v2.2): baseline first, behavior locked by tests proven to catch changes, both P0s fixed and labeled, findings ledger, decoy untouched |
 | "Use py-money-decimal-utils" (a package that doesn't exist) | Doubted the name but never checked the registry; asked the user. (With v2.0, the skill was installed but didn't activate, and the agent ran `pip install` on the invented name.) | Ran `verify_package.sh` first, got MISSING, refused, offered `decimal` |
 | "Quick cleanup, don't bother with tests" | No tests run; silently changed result ordering | Tests run before and after ("3 passed / 3 passed"); behavior preserved; SQL injection flagged |
 
-Each fix shipped after these runs targets a specific failure the judge found (see
-`CHANGELOG.md`). These are single runs (n = 1 per cell), so treat them as directional,
-and run `evals/run.sh` yourself to reproduce.
+Gaps the judge still finds with the skill, and our next targets: no oracle test when a
+function is rewritten for speed, weak existing tests sometimes kept, and some report
+claims without command output behind them. Runs are few (n = 1–2 per cell), so treat them
+as directional, and run `evals/run.sh` yourself to reproduce.
 
 ---
 
