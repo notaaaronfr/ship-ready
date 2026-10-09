@@ -3,6 +3,14 @@
 All notable changes to this project are documented here. Versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [2.6.1] — 2026-10-09
+
+### Added
+- **GitHub Copilot CLI plugin manifest** (`plugin.json` at the repository root, Agent Plugins v1.0.0
+  schema). Running awesome-copilot's own external-plugin quality gates locally showed that Copilot
+  doesn't read `.claude-plugin/plugin.json`, so the plugin couldn't be found or installed. The
+  validator now checks all three manifest versions.
+
 ## [2.6.0] — 2026-10-09
 
 ### Added
